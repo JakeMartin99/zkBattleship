@@ -1,13 +1,13 @@
 pragma circom 2.0.5;
 
-include "node_modules/circomlib/circuits/mimicsponge.circom";
+include "../node_modules/circomlib/circuits/mimicsponge.circom";
 
-template ValidateBoard() {
+template CheckBoardHash() {
     signal input board[10][10];
     signal input userSecret;
     signal output boardHash;
     
-    component boardHasher = MiMCSponge(100, 220, 1);
+    component hasher = MiMCSponge(100, 220, 1);
     hasher.k = userSecret;
 
     for (var i=0; i<10; i++) {
@@ -15,7 +15,6 @@ template ValidateBoard() {
             hasher.ins[10*i + j] = board[i][j];
         }
     }
-    boardHash <== boardHasher.outs[0]
+    
+    boardHash <== hasher.outs[0]
 }
-
-component main {public [boardMerkelRoot]} = ValidateBoard();
