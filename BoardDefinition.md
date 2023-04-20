@@ -25,19 +25,19 @@ There are a series of integer codes that can be placed into the array, subject t
 
 In order to prove that a 10x10 raw board was constructed correctly, it can be helpful to start from a simpler scheme, and prove that the 10x10 board was generated from it. In particular, while the 10x10 format is beneficial for enforcing the non-overlapping condition, and for modeling how to change the game state throughout gameplay, it is tedious for verifying that the initial setup corresponds to the other conditions for ship placement. As such, we will instead start with a hyper-simple construction:
 
--   Each of the 5 ship types will get 3 free parameters: horizontol position (`int x;`), vertical position (`int y;`), and direction (`bool dir;`), in addition to a preset parameter for the length of each (`int len;`).
+-   Each of the 5 ship types will get 3 free parameters: horizontol position (`int x;`), vertical position (`int y;`), and direction (`bool dir;`), in addition to a preset parameter for the length of each (`int len;`). This may sometimes be encoded as 5 lists of 3, 1 for each ship, using order `x` -> `y` -> `dir`.
     -   `x` and `y` describe the coordinate position of the upper-left-most corner of the given ship on the 10x10 grid. As such, they will subject to the constraint that they are both `>=0` and `<10`.
     -   `dir` describes whether or not the ship is aligned horizontally (`false` or `0`) or vertically (`true` or `1`). While only directly subjected to the constraint that it be a valid boolean, it also imposes a restriction on either `x` or `y` in order to prevent overflow off the edge of the board, as follows:
 
 ```python
-if (dir):
+if (dir==0):
     assert(x < 10 - len)
 else:
     assert(y < 10 - len)
 ```
 
 -   Using this scheme is beneficial because it is extremely compact and therefore easy to specify a board with, and generally by construction prevents the construction of boards that are invalid due to including non-existent, incorrect-length, incorrectly-placed, or duplicate ships. Really the only check that is hard to do at this stage is for overlapping, but that can be done during conversion to the final 10x10 raw board.
-    -   In order to perform construction, we initialize every space on the 10x10 to `00` for an unhit empty space, and then simply go through each of the ship tuples one-by-one and update `len(ship)` spaces to the ship's `n0` unhit space code based on the coordinate and direction specified. Then, we conclude by verfiying that the resulting 10x10 has exactly `len(ship)` codes of each ship, which ensures that overlapping did not happen (as any overlap would result in a ship having its space overwritten, and therefore having too few spaces).
+    -   In order to perform construction, we initialize every space on the 10x10 to `00` for an unhit empty space, and then simply go through each of the ship tuples one-by-one and update `len(ship)` spaces to the ship's `n0` unhit space code based on the coordinate and direction specified. We must also ensure that overlapping did not happen by checking for overwrites during this process (as any overlap would result in a ship having its space overwritten).
 -   This scheme has an added utility in that it can be used to quickly generate the spaces to investigate on the 10x10 in order to determine whether or not a ship-hit results in that ship sinking.
 
 ## Hashed Boards
