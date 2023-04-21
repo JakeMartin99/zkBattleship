@@ -4,7 +4,7 @@
     CSCI 4240 Project
     zkBattleship
 
-    Circuits for private, local usage to turn a C-Board into an R-Board.
+    Circuits for private, local usage to turn a C-Board into an R-Board with useful extra outputs.
 */
 pragma circom 2.1.5;
 
