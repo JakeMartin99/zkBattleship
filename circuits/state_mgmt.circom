@@ -8,51 +8,33 @@
 */
 pragma circom 2.1.5;
 
+include "./utilities/comparators2.circom";
+
+include "../node_modules/circomlib/circuits/comparators.circom";
+include "../node_modules/circomlib/circuits/gates.circom";
 include "../node_modules/circomlib/circuits/mimcsponge.circom";
 
 /*
-    Encodes the state vector by applying 220-round 2-to-1 MiMCSponge to the element and salt at each index.
+    Hashes a fleet using 220-round 17-to-1 MiMCSponge, used for commiting to fleet placement.
 
     input signals:
-        state: a list of binary values, indicating whether that index's ship position has been hit
-        salt: a collection of random numbers which makes the state hash more secure
+        fleet: a flattened list of fleet position codes
         secret: a random number that pseudo-randomizes the hash function
-    output signals:
-        out: the encoded state vector
-*/
-template EncodeState() {
-    signal input state[17];
-    signal input salt[17];
-    signal input secret;
-    signal output out[17];
-
-    signal hashes[17][1];
-    for (var i=0; i<17; i++) {
-        hashes[i] <== MiMCSponge(2, 220, 1)([state[i], salt[i]], secret);
-        out[i] <== hashes[i][0];
-    }
-}
-
-/*
-    Hashes the encoded state vector wotj 220-round 17-to-1 MiMCSpong.
-
-    input signals:
-        encState: the encoded state vector, such as is produced by EncodeState()
-        secret: a random number that pseudo-randomizes the hash function
-    output signals:
+    output signal:
         out: the resulting hashed value
 */
-template HashEncodedState() {
-    signal input encState[17];
+template HashFleet() {
+    signal input fleet[17];
     signal input secret;
     signal output out;
 
-    signal hash[1] <== MiMCSponge(17, 220, 1)(encState, secret);
-    out <== hash[0];
+    signal hashed[1] <== MiMCSponge(17, 220, 1)(fleet, secret);
+    out <== hashed[0];
 }
 
 /*
-    Combines EncodeState() and HashEncodedState() to compute the state hash from start to finish
+    Encodes the elements of the state and then hashes them using MiMCSponge, used for committing
+    to game state.
 
     input signals:
         state: a list of binary values, indicating whether that index's ship position has been hit
@@ -67,7 +49,68 @@ template HashState() {
     signal input secret;
     signal output out;
 
-    signal encState[17] <== EncodeState()(state, salt, secret);
+    // Encode the state vector by applying 220-round 2-to-1 MiMCSponge to the element and salt at each index
+    signal hashes[17][1];
+    signal encState[17];
+    for (var i=0; i<17; i++) {
+        hashes[i] <== MiMCSponge(2, 220, 1)([state[i], salt[i]], secret);
+        encState[i] <== hashes[i][0];
+    }
 
-    out <== HashEncodedState()(encState, secret);
+    // Hash the encoded state vector with 220-round 17-to-1 MiMCSpong
+    signal hash[1] <== MiMCSponge(17, 220, 1)(encState, secret);
+    out <== hash[0];
+}
+
+/*
+    Validates an opponents move and processes it's effects on the game state.
+    
+    input signals:
+        shotPos: the position code that the opponent's move is firing at
+        fleet: all of the ships position codes in a single list
+        state: a list of binary values, indicating whether that index's ship position has been hit
+    output signals:
+        newState: state, but updated to account for if shotPos got a successful hit
+        wasAHit: binary for whether or not the shot hit a ship
+*/
+template ProcessMove() {
+    signal input shotPos;
+    signal input fleet[17];
+    signal input state[17];
+    signal output newState[17];
+    signal output wasAHit;
+
+    signal isShotLoc[17];
+    for (var i=0; i<17; i++) {
+        // Whether or not the shot hit the ship position at the current index
+        isShotLoc[i] <== IsEqual()([shotPos, state[i]]);
+
+        // If the shot was a hit here, update it from 0 to 1, or fail if it was already 1
+        newState[i] <== state[i] + isShotLoc[i];
+        RequireBinary()(newState[i]);
+    }
+
+    // Whether or not the shot hit anywhere, adds constraint that one shot cannot hit two spaces
+    // (which shouldn't happen anyway, but just to be safe)
+    wasAHit <== BinaryArrayCount(17)(isShotLoc);
+    RequireBinary()(wasAHit);
+}
+
+/*
+    Determines what ships are sunk in the provided game state.
+
+    input signals:
+        state: a list of binary values, indicating whether that index's ship position has been hit
+    output signals:
+        isSunk: a binary list for whether or not each of the 5 ships is sunk (post-move)
+*/
+template GetSunk() {
+    signal input state[17];
+    signal output isSunk[5];
+
+    isSunk[0] <== AND()(state[0], state[1]);
+    isSunk[1] <== MultiAND(3)([state[2], state[3], state[4]]);
+    isSunk[2] <== MultiAND(3)([state[5], state[6], state[7]]);
+    isSunk[3] <== MultiAND(4)([state[8], state[9], state[10], state[11]]);
+    isSunk[4] <== MultiAND(5)([state[12], state[13], state[14], state[15], state[16]]);
 }

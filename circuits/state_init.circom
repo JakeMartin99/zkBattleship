@@ -52,24 +52,6 @@ template FlattenFleet() {
 }
 
 /*
-    Hashes a fleet using 220-round 17-to-1 MiMCSponge, used for commiting to fleet placement.
-
-    input signals:
-        fleet: a flattened list of fleet position codes, as produced by FlattenFleet()
-        secret: a random number that pseudo-randomizes the hash function
-    output signal:
-        out: the resulting hashed value
-*/
-template HashFleet() {
-    signal input fleet[17];
-    signal input secret;
-    signal output out;
-
-    signal hashed[1] <== MiMCSponge(17, 220, 1)(fleet, secret);
-    out <== hashed[0];
-}
-
-/*
     Main circuit for validating and then initializing a game from a set of ship placements.
 
     input signals:
@@ -85,6 +67,7 @@ template HashFleet() {
         stateHash: the hash of the game state to commit to, which is initially all zeros
             -[NOTE] the state itself is a list of binary values, corresponding to the flattened fleet,
                 accepting 0 => has not been hit | 1 => has been hit
+        saltHash: the hash of the salt that initialization commits to, as produced by HashFleet()
 */
 template InitState() {
     signal input patrol[3];
@@ -96,6 +79,7 @@ template InitState() {
     signal input secret;
     signal output fleetHash;
     signal output stateHash;
+    signal output saltHash;
     
     // Use the ship's tuples to generate a valid fleet placement
     signal (patrol_p[2], submarine_p[3], destroyer_p[3], battleship_p[4], carrier_p[5]) <==
@@ -111,6 +95,9 @@ template InitState() {
         state[i] <== 0;
     }
     stateHash <== HashState()(state, salt, secret);
+
+    // Generate the salt hash to commit to
+    saltHash <== HashFleet()(salt, secret);
 }
 
 component main = InitState();

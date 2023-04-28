@@ -95,3 +95,30 @@ template Requrie2DontOverlap(len1, len2) {
         }
     }
 }
+
+/*
+    Counts the number of ones in a binary array
+
+    parameters:
+        len: the length of the binary array
+    input signals:
+        in: the binary array to count
+    output signals:
+        out: the final count result
+*/
+template BinaryArrayCount(len) {
+    signal input in[len];
+    signal output out;
+
+    // Use acc to progressively accumulate the sum of the elements
+    signal acc[len+1];
+    acc[0] <== 0;
+    for (var i=0; i<len; i++) {
+        // Ensure that the new element is binary and accumulate it
+        RequireBinary()(in[i]);
+        acc[i+1] <== acc[i] + in[i];
+    }
+
+    // Return the final accumulation result
+    out <== acc[len];
+}
