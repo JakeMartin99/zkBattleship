@@ -1,2 +1,7 @@
 *.vs
 node_modules
+circuits/trusted_setup/powers_of_tau/pot18_0*
+circuits/trusted_setup/phase_2/state_init/pot18_init.ptau
+circuits/trusted_setup/phase_2/state_init/init_0*
+circuits/trusted_setup/phase_2/state_process_move/pot18*
+circuits/trusted_setup/phase_2/state_process_move/init_0*
