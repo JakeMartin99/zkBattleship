@@ -5,3 +5,5 @@ circuits/trusted_setup/phase_2/state_init/pot18_init.ptau
 circuits/trusted_setup/phase_2/state_init/init_0*
 circuits/trusted_setup/phase_2/state_process_move/pot18*
 circuits/trusted_setup/phase_2/state_process_move/move_0*
+init_proof.json
+init_public.json
